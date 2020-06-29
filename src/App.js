@@ -88,6 +88,14 @@ const Score = styled.span`
   font: 700 2rem 'Open Sans', sans-serif;
 `;
 
+const Timer = styled.span`
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  color: red;
+  font: 700 2rem 'Open Sans', sans-serif;
+`;
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -150,25 +158,51 @@ class App extends Component {
       currentAnswer: {},
       error: null,
       points: 0,
+      timer: 10,
     };
   }
 
+  componentDidMount() {
+    this.fireTimer();
+  }
+
+  fireTimer = () => {
+    this.counter = setInterval(() => {
+      if (this.state.timer === 0) {
+        this.showNextQuestion();
+      } else {
+        this.setState({
+          timer: this.state.timer - 1,
+        });
+      }
+    }, 1000)
+  }
+
   showNextQuestion = () => {
-    const { currentAnswer, currentQuestion, points } = this.state;
+    const { currentAnswer, currentQuestion, points, questions } = this.state;
+
+    clearInterval(this.counter);
+    this.fireTimer();
 
     // Mostrar próxima pergunta e verifcar resposta
-    if (currentAnswer.label) {
+    this.setState({
+      currentQuestion: currentQuestion + 1,
+      points: currentAnswer && currentAnswer.isCorrect ? points + 1 : points,
+      timer: 10,
+    }, () => {
+      // Se for a ultima questao, finaliza o quiz
+      const isFinished = questions.length === currentQuestion;
 
-      this.setState({
-        currentQuestion: currentQuestion + 1,
-        points: currentAnswer.isCorrect ? points + 1 : points
-      })
-    } else {
-      // Mostrar mensagem de erro
-      this.setState({
-        error: 'Selecione uma opção'
-      });
-    }
+      if (isFinished) {
+        this.setState({
+          timer: 0
+        });
+
+        clearInterval(this.counter);
+
+        return;
+      }
+    });
   }
 
   renderOptions = (options) => {
@@ -230,12 +264,19 @@ class App extends Component {
           My Quiz!!!
         </Title>
         <QuizContainer>
+          {this.state.timer > 0 && (
+            <Timer>
+              {this.state.timer}
+            </Timer>
+          )}
           {!isFinished ? this.renderQuestions() : this.renderScore()}
-          <SubmitButton
-            onClick={this.showNextQuestion}
-          >
-            Próxima
-          </SubmitButton>
+          {!isFinished && (
+            <SubmitButton
+              onClick={this.showNextQuestion}
+            >
+              Próxima
+            </SubmitButton>
+          )}
         </QuizContainer>
         {error && (
           <Error>
